@@ -1,0 +1,34 @@
+{
+  "author": "Knut Skåla",
+  "name": "BrickHarvester",
+  "description": "Pull and parse Pick a Brick data fom http://shop.lego.com/",
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/superunrelated/BrickHarvester.git"
+  },
+  "main": "lib/harvester.js",
+  "scripts": {
+    "test": "make test",
+    "postinstall": "coffee -c -o ./lib/ ./src/",
+    "postupdate": "coffee -c -o ./lib/ ./src/"
+  },
+  "engines": {
+    "node": ">= 0.10.0"
+  },
+  "dependencies": {
+    "async": "^0.9.0",
+    "colors": "^0.6.2",
+    "fs-extra": "^0.12.0",
+    "gm": "^1.16.0",
+    "png-js": "^0.1.1",
+    "underscore": "^1.7.0"
+  },
+  "devDependencies": {
+    "coffee-script": ">= 1.3"
+  },
+  "keywords": [
+    "bricks",
+    "LEGO"
+  ]
+}
