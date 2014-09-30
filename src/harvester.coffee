@@ -1,13 +1,4 @@
 
-# parameters = 
-# 	sid: Math.random()
-# 	itemid: ''
-# 	st: 5 # search type (0= Brick Name, 1=Category, 2=Color Family, 3=Element ID, 4:Design ID, 5:Allbricks, 6:Exact Color)
-# 	sv: 'allbricks' # search term
-# 	pn: 0 # page number
-# 	ps: 2000 # page length
-# 	cat: 'NO' # locale
-
 require('colors')
 _ = require('underscore')
 fs = require('fs-extra')
@@ -20,28 +11,37 @@ gm = require('gm')
 PNG = require('png-js')
 
 module.exports = class Harvester
-	constructor: (@cachePath) ->
-		@cachePath ?= path.join(__dirname, "../cache/")
+	constructor: (@cache) ->
+		unless @cache and @cache
+			throw new Error('Cache is required')
+			return
+
 		@options = 
 			hostname: 'customization.lego.com'
 			port: 80
 			method: 'GET'
 
-	fetch: (fn) =>
-		console.log("Fetch bricks")
-		jsonPath = path.join(@cachePath, "data.json")
+	harvest: (fn) =>
+		console.log("Harvesting bricks".green)
+		jsonPath = path.join(@cache, "data.json")
 		fs.readFile(jsonPath, 'utf8', (err, json) =>
-			unless err then return fn(null, JSON.parse(json))
+			unless err 
+				console.log("Returning cached data".green) 
+				return fn(null, JSON.parse(json))
 
 			async.waterfall([
 				@fetchBricks
 				@parseBricks
 				@fetchImages
 				@parseImages
+				@normalizeColors
 			], (err, data) =>
 				if err then return fn(err)
-				fs.writeFileSync(jsonPath, JSON.stringify(data, null, 2))
-				return data
+				fs.outputFile(jsonPath, JSON.stringify(data, null, 2), (err) =>
+					if err then return fn(err)
+					console.log("Completed brick harvest!".green)
+					return fn(null, data)
+				)
 			)		
 		)
 
@@ -50,9 +50,11 @@ module.exports = class Harvester
 
 
 	fetchBricks: (fn) =>
-		htmlPath = path.join(@cachePath, "data.html")
+		htmlPath = path.join(@cache, "data.html")
 		fs.readFile(htmlPath, 'utf8', (err, data) =>
-			unless err then return fn(null, data)
+			unless err 
+				fn(null, data)
+				return 
 
 			@options.path = '/en-US/pab/service/getBricks.aspx?' + qs.stringify(
 				st: 5
@@ -72,8 +74,6 @@ module.exports = class Harvester
 		)
 
 	parseBricks: (html, fn) =>
-		console.log('Parsing data'.blue, '\n')
-
 		regexp = /getBrick\(([0-9]*)\)/g
 		matches = _.unique(@matchAll(html, regexp))
 		bricks = []
@@ -96,10 +96,10 @@ module.exports = class Harvester
 	# FETCH INDIVIDUAL BRICKS FROM LEGO
 
 	fetchBrick: (id, fn) =>
-		brickPath = path.join(@cachePath, 'bricks/' + id + '.html')
+		brickPath = path.join(@cache, 'bricks/' + id + '.html')
 		fs.readFile(brickPath, 'utf8', (err, data) =>
 			unless err
-				@parseBricks(data, (err, json) =>
+				@parseBrick(data, (err, json) =>
 					return fn(null, json)
 				)
 				return
@@ -113,14 +113,14 @@ module.exports = class Harvester
 				if err then return fn(err)
 				fs.outputFile(brickPath, html, (err) =>
 					if err then return fn(err)
-					@parseBricks(html, (err, json) =>
+					@parseBrick(html, (err, json) =>
 						return fn(null, json)
 					)
 				)
 			)
 		)
 
-	parseBricks: (data, fn) =>
+	parseBrick: (data, fn) =>
 		title = @matchAll(data, /<span id="Label2">([^<]*)<\/span>/g)[0]
 		brick = 
 			title: title
@@ -157,7 +157,7 @@ module.exports = class Harvester
 			4,
 			(brick, fn) =>
 				brick.src = path.join('/images/factory/pab/brickSpins/', brick.itemId + '_' + 3 + '.jpg')
-				brick.target = path.join(@cachePath, 'bricks/images/', brick.itemId + '.png')
+				brick.target = path.join(@cache, 'bricks/images/', brick.itemId + '.png')
 				@fetchImage(brick.src, brick.target, fn)
 			,
 			(err) =>
@@ -215,7 +215,6 @@ module.exports = class Harvester
 	parseImage: (brick, fn) =>
 		@i ?= 0
 		index = 100 * 100 * 4 
-		console.log(">>", brick.target, @i++)
 		PNG.decode(brick.target, (pixels) =>
 			i = count = r = g = b = 0
 			while i < pixels.length
@@ -238,8 +237,33 @@ module.exports = class Harvester
 			return fn(null)
 		)
 
+	normalizeColors: (bricks, fn) =>
+		colors = @unique(bricks, 'colorId', ['colorId'])
+		for color in colors
+			colorBricks = @filter(bricks, colorId: color.colorId)
+			rgb = undefined
 
-	# UTILS
+			# gather colors
+			for brick in colorBricks
+				if rgb is undefined
+					rgb = _.clone(brick.colorRGB)
+				else
+					for k, c of rgb
+						rgb[k] += brick.colorRGB[k]
+
+			# average colors
+			for k, c of rgb
+				rgb[k] /= colorBricks.length
+				rgb[k] = Math.round(rgb[k])
+
+			# append colors
+			for brick in colorBricks
+				brick.colorRGB = rgb
+
+		fn(null, bricks)
+
+
+	# UTILS AND HELPERS
 
 
 	getHTML: (options, fn) =>
@@ -274,4 +298,65 @@ module.exports = class Harvester
 		if hex.length is 1 
 			hex = "0" + hex
 		return hex
+
+
+	# pick
+	# return a list of bricks with only the whitelisted keys
+	# see underscore's documentation for pick()
+
+	pick:(bricks, keys) ->
+		result = []
+		for brick, key in bricks
+			result.push(_.pick(brick), keys)
+		return result
+
+	# unique
+	# Return a list of bricks where one parameter is unique between them and  
+	# only the selected keys are included.
+	# ie: @unique(bricks, 'colorId', ['colorRBG'])
+	# returns a list of all unique colorsId's with their coresponding colorRGB property
+
+	unique:(bricks, unique, keys) ->
+		ids = []
+		result = []
+		for brick, key in bricks
+			if brick[unique].length > 0 and ids.indexOf(brick[unique]) is -1
+				ids.push(brick[unique])
+				result.push(_.pick(brick, keys))
+		return result
+
+	# filter
+	# Return a list of bricks where all properties matches alle filters
+	# ie: @filter(bricks, {title: /Plate 1X1/g, designId: '3024'})
+	# "title" has to pass the RegExp and "designId" has to match the string
+
+	filter:(bricks, filters) ->
+		result = []
+		for brick, key in bricks
+			match = true
+			for filterKey, filterValue of filters
+				if filterValue instanceof RegExp
+					if brick[filterKey].search(filterValue) is -1
+						match = false
+						break
+				else if (brick[filterKey] isnt filterValue)
+					match = false
+					break
+				
+			if match
+				result.push(brick)
+
+		return result
+
+	getPricePrDot: (brick) ->
+		brick.price / (brick.x * brick.y)
+
+	sortByPricePrDot: (bricks) ->
+		for brick, key in bricks
+			brick.pricePrDot = @getPricePrDot(brick)
+
+		bricks.sort((a, b) ->
+			return if a.pricePrDot > b.pricePrDot then 1 else -1
+		)
+		return bricks
 
