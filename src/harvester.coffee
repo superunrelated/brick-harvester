@@ -184,7 +184,7 @@ module.exports = class Harvester
 					return fn(err)
 				)
 				res.on('end', () =>
-					fs.writeFile(target, imagedata, 'binary', (err) =>
+					fs.outputFile(target, imagedata, 'binary', (err) =>
 						if err then return fn(err)
 						gm(target)
 							# .blur(10, 10)

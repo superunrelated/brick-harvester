@@ -12,6 +12,9 @@ else
 
 harvester = new Harvester(cache)
 harvester.harvest((err, bricks) =>
+	if err 
+		console.log(err)
+		return
 	console.log(("Data sucessfully harvested for " + bricks.length + " bricks").green)
 )
 
