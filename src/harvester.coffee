@@ -233,14 +233,13 @@ module.exports = class Harvester
 				g: Math.min(255, Math.round(g / count) + brighten)
 				b: Math.min(255, Math.round(b / count) + brighten)
 				a: 255
-			brick.colorHex = @rgbToHex(brick.colorRGB.r, brick.colorRGB.g, brick.colorRGB.b)
 			return fn(null)
 		)
 
 	normalizeColors: (bricks, fn) =>
-		colors = @unique(bricks, 'colorId', ['colorId'])
+		colors = @constructor.unique(bricks, 'colorId', ['colorId'])
 		for color in colors
-			colorBricks = @filter(bricks, colorId: color.colorId)
+			colorBricks = @constructor.filter(bricks, colorId: color.colorId)
 			rgb = undefined
 
 			# gather colors
@@ -259,14 +258,15 @@ module.exports = class Harvester
 			# append colors
 			for brick in colorBricks
 				brick.colorRGB = rgb
+				brick.colorHex = @constructor.rgbToHex(rgb)
 
 		fn(null, bricks)
 
 
-	# UTILS AND HELPERS
+	# HELPERS
 
 
-	getHTML: (options, fn) =>
+	getHTML: (options, fn) ->
 		req = http.request(options, (res) =>
 			res.setEncoding('utf8')
 			data = ''
@@ -283,17 +283,21 @@ module.exports = class Harvester
 		)
 		req.end()
 
-	matchAll: (string, regexp, index=1) =>
+	matchAll: (string, regexp, index=1) ->
 		matches = []
 		while match = regexp.exec(string)
 			matches.push(match[index])
-		
 		return matches
 
-	rgbToHex: (r, g, b) =>
-		return "#" + @componentToHex(r) + @componentToHex(g) + @componentToHex(b)
+	# UTILS
 
-	componentToHex: (c) ->
+	@rgbToHex: (rgb) ->
+		return "#" +
+			@componentToHex(rgb.r) + 
+			@componentToHex(rgb.g) + 
+			@componentToHex(rgb.b)
+
+	@componentToHex: (c) ->
 		hex = c.toString(16)
 		if hex.length is 1 
 			hex = "0" + hex
@@ -304,11 +308,12 @@ module.exports = class Harvester
 	# return a list of bricks with only the whitelisted keys
 	# see underscore's documentation for pick()
 
-	pick:(bricks, keys) ->
+	@pick:(bricks, keys) ->
 		result = []
 		for brick, key in bricks
 			result.push(_.pick(brick), keys)
 		return result
+
 
 	# unique
 	# Return a list of bricks where one parameter is unique between them and  
@@ -316,7 +321,7 @@ module.exports = class Harvester
 	# ie: @unique(bricks, 'colorId', ['colorRBG'])
 	# returns a list of all unique colorsId's with their coresponding colorRGB property
 
-	unique:(bricks, unique, keys) ->
+	@unique:(bricks, unique, keys) ->
 		ids = []
 		result = []
 		for brick, key in bricks
@@ -325,12 +330,13 @@ module.exports = class Harvester
 				result.push(_.pick(brick, keys))
 		return result
 
+
 	# filter
 	# Return a list of bricks where all properties matches alle filters
 	# ie: @filter(bricks, {title: /Plate 1X1/g, designId: '3024'})
 	# "title" has to pass the RegExp and "designId" has to match the string
 
-	filter:(bricks, filters) ->
+	@filter:(bricks, filters) ->
 		result = []
 		for brick, key in bricks
 			match = true
@@ -348,10 +354,10 @@ module.exports = class Harvester
 
 		return result
 
-	getPricePrDot: (brick) ->
+	@getPricePrDot: (brick) ->
 		brick.price / (brick.x * brick.y)
 
-	sortByPricePrDot: (bricks) ->
+	@sortByPricePrDot: (bricks) ->
 		for brick, key in bricks
 			brick.pricePrDot = @getPricePrDot(brick)
 
