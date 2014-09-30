@@ -8,7 +8,7 @@ Harvester = require('../src/harvester')
 if process.argv[2]
 	cache = path.resolve(process.argv[2])
 else
-	cache = path.resolve('../cache/')
+	cache = path.resolve('./cache/')
 
 harvester = new Harvester(cache)
 harvester.harvest((err, bricks) =>
