@@ -157,7 +157,7 @@ module.exports = class Harvester
 			4,
 			(brick, fn) =>
 				brick.src = path.join('/images/factory/pab/brickSpins/', brick.itemId + '_' + 3 + '.jpg')
-				brick.target = path.join(@cache, 'bricks/images/', brick.itemId + '.png')
+				brick.target = path.join(@cache, '/images/', brick.itemId + '.png')
 				@fetchImage(brick.src, brick.target, fn)
 			,
 			(err) =>
