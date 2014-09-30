@@ -5,7 +5,12 @@ path = require('path')
 
 Harvester = require('../src/harvester')
 
-harvester = new Harvester(path.join(__dirname, '../cache/'))
+if process.argv[2]
+	cache = path.resolve(process.argv[2])
+else
+	cache = path.resolve('../cache/')
+
+harvester = new Harvester(cache)
 harvester.harvest((err, bricks) =>
 	console.log(("Data sucessfully harvested for " + bricks.length + " bricks").green)
 )

@@ -13,7 +13,7 @@
     "postinstall": "coffee -c -o ./lib/ ./src/",
     "postupdate": "coffee -c -o ./lib/ ./src/",
     "prestart": "coffee -c -o ./lib/ ./src/",
-    "start" : "./bin/harvester"
+    "start": "./bin/harvester"
   },
   "engines": {
     "node": ">= 0.10.0"
