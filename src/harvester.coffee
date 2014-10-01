@@ -228,11 +228,11 @@ module.exports = class Harvester
 					b += pb
 				i+=4
 			brighten = 0
-			brick.colorRGB = 
-				r: Math.min(255, Math.round(r / count) + brighten)
-				g: Math.min(255, Math.round(g / count) + brighten)
-				b: Math.min(255, Math.round(b / count) + brighten)
-				a: 255
+			brick.colorRGB = [
+				Math.min(255, Math.round(r / count) + brighten)
+				Math.min(255, Math.round(g / count) + brighten)
+				Math.min(255, Math.round(b / count) + brighten)
+			]
 			return fn(null)
 		)
 
@@ -247,11 +247,11 @@ module.exports = class Harvester
 				if rgb is undefined
 					rgb = _.clone(brick.colorRGB)
 				else
-					for k, c of rgb
+					for c, k in rgb
 						rgb[k] += brick.colorRGB[k]
 
 			# average colors
-			for k, c of rgb
+			for c, k in rgb
 				rgb[k] /= colorBricks.length
 				rgb[k] = Math.round(rgb[k])
 
@@ -293,9 +293,9 @@ module.exports = class Harvester
 
 	@rgbToHex: (rgb) ->
 		return "#" +
-			@componentToHex(rgb.r) + 
-			@componentToHex(rgb.g) + 
-			@componentToHex(rgb.b)
+			@componentToHex(rgb[0]) + 
+			@componentToHex(rgb[1]) + 
+			@componentToHex(rgb[2])
 
 	@componentToHex: (c) ->
 		hex = c.toString(16)
@@ -311,7 +311,7 @@ module.exports = class Harvester
 	@pick:(bricks, keys) ->
 		result = []
 		for brick, key in bricks
-			result.push(_.pick(brick), keys)
+			result.push(_.pick(brick, keys))
 		return result
 
 
