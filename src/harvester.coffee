@@ -325,7 +325,7 @@ module.exports = class Harvester
 		ids = []
 		result = []
 		for brick, key in bricks
-			if brick[unique].length > 0 and ids.indexOf(brick[unique]) is -1
+			if brick[unique]? and ids.indexOf(brick[unique]) is -1
 				ids.push(brick[unique])
 				result.push(_.pick(brick, keys))
 		return result
