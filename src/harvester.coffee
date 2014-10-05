@@ -25,9 +25,9 @@ module.exports = class Harvester
 		console.log("Harvesting bricks".green)
 		jsonPath = path.join(@cache, "data.json")
 		fs.readFile(jsonPath, 'utf8', (err, json) =>
-			unless err 
-				console.log("Returning cached data".green) 
-				return fn(null, JSON.parse(json))
+			# unless err 
+			# 	console.log("Returning cached data".green) 
+			# 	return fn(null, JSON.parse(json))
 
 			async.waterfall([
 				@fetchBricks
@@ -83,7 +83,9 @@ module.exports = class Harvester
 			4,
 			(item, fn) =>
 				@fetchBrick(item, (err, json) =>
-					if err then return fn(err)
+					if err 
+						console.log(err)
+						return fn(null)
 					bricks.push(json)
 					fn(null)
 				)
@@ -99,9 +101,7 @@ module.exports = class Harvester
 		brickPath = path.join(@cache, 'bricks/' + id + '.html')
 		fs.readFile(brickPath, 'utf8', (err, data) =>
 			unless err
-				@parseBrick(data, (err, json) =>
-					return fn(null, json)
-				)
+				@parseBrick(data, fn)
 				return
 
 			@options.path = '/en-US/pab/service/getBrick.aspx?' + qs.stringify(
@@ -113,9 +113,7 @@ module.exports = class Harvester
 				if err then return fn(err)
 				fs.outputFile(brickPath, html, (err) =>
 					if err then return fn(err)
-					@parseBrick(html, (err, json) =>
-						return fn(null, json)
-					)
+					@parseBrick(html, fn)
 				)
 			)
 		)
@@ -134,6 +132,12 @@ module.exports = class Harvester
 			designId: parseInt(@matchAll(data, /<span id="Label7">([^<]*)<\/span>/g)[0])
 			currency: @matchAll(data, /<span id="Label3">([^<]*)<\/span>/g)[0]
 			price: Number(@matchAll(data, /<span id="Label1">([^<]*)<\/span>/g)[0])
+
+		if isNaN(brick.colorId)
+			return fn(new Error('"' + brick.title + '" has no colorId and is ignored'))
+			
+		if isNaN(brick.itemId)
+			return fn(new Error('"' + brick.title + '" has no itemId and is ignored'))
 
 		reg = /([\d]{1,3})X([\d]{1,3})[x]?([\d]{0,3})/g
 		dimentions = reg.exec(title)
@@ -345,7 +349,7 @@ module.exports = class Harvester
 					if brick[filterKey].search(filterValue) is -1
 						match = false
 						break
-				else if (brick[filterKey] isnt filterValue)
+				else if brick[filterKey] isnt filterValue
 					match = false
 					break
 				
