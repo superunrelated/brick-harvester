@@ -125,25 +125,25 @@ module.exports = class Harvester
 		brick = 
 			title: title
 			colorFamily: @matchAll(data, /<span id="Label4">([^<]*)<\/span>/g)[0]
-			colorFamilyId: @matchAll(data, /getBricks\(2,([-\d]*)\)/g)[0]
+			colorFamilyId: parseInt(@matchAll(data, /getBricks\(2,([-\d]*)\)/g)[0])
 			color: @matchAll(data, /<span id="Label8">([^<]*)<\/span>/g)[0]
-			colorId: @matchAll(data, /getBricks\(6,([-\d]*)\)/g)[0]
+			colorId: parseInt(@matchAll(data, /getBricks\(6,([-\d]*)\)/g)[0])
 			category: @matchAll(data, /<span id="Label5">([^<]*)<\/span>/g)[0]
-			categoryId: @matchAll(data, /getBricks\(1,([-\d]*)\)/g)[0]
-			itemId: @matchAll(data, /<span id="Label6">([^<]*)<\/span>/g)[0]
-			designId: @matchAll(data, /<span id="Label7">([^<]*)<\/span>/g)[0]
+			categoryId: parseInt(@matchAll(data, /getBricks\(1,([-\d]*)\)/g)[0])
+			itemId: parseInt(@matchAll(data, /<span id="Label6">([^<]*)<\/span>/g)[0])
+			designId: parseInt(@matchAll(data, /<span id="Label7">([^<]*)<\/span>/g)[0])
 			currency: @matchAll(data, /<span id="Label3">([^<]*)<\/span>/g)[0]
-			price: @matchAll(data, /<span id="Label1">([^<]*)<\/span>/g)[0]
+			price: Number(@matchAll(data, /<span id="Label1">([^<]*)<\/span>/g)[0])
 
 		reg = /([\d]{1,3})X([\d]{1,3})[x]?([\d]{0,3})/g
 		dimentions = reg.exec(title)
 		if dimentions
 			if dimentions[1]
-				brick.x = dimentions[1]
+				brick.x = parseInt(dimentions[1])
 			if dimentions[2]
-				brick.y = dimentions[2]
+				brick.y = parseInt(dimentions[2])
 			if dimentions[3]
-				brick.z = dimentions[3]
+				brick.z = parseInt(dimentions[3])
 
 		fn(null, brick)
 

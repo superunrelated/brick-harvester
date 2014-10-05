@@ -2,7 +2,7 @@
   "author": "Knut Skåla",
   "name": "brick-harvester",
   "description": "Pull and parse Pick a Brick data fom http://shop.lego.com/",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "repository": {
     "type": "git",
     "url": "https://github.com/superunrelated/brick-harvester.git"
