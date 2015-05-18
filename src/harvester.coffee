@@ -8,7 +8,10 @@ path = require('path')
 async = require('async')
 
 gm = require('gm')
-PNG = require('png-js')
+getPixels = require("get-pixels")
+sys = require('sys')
+exec = require('child_process').exec
+
 
 module.exports = class Harvester
 	constructor: (@cache) ->
@@ -218,26 +221,38 @@ module.exports = class Harvester
 
 	parseImage: (brick, fn) =>
 		@i ?= 0
-		index = 100 * 100 * 4 
-		PNG.decode(brick.target, (pixels) =>
-			i = count = r = g = b = 0
-			while i < pixels.length
-				pr = pixels[i + 0]
-				pg = pixels[i + 1]
-				pb = pixels[i + 2]
-				if pr < 255 and pg < 255 and pg < 255
-					count++
-					r += pr
-					g += pg
-					b += pb
-				i+=4
-			brighten = 0
-			brick.colorRGB = [
-				Math.min(255, Math.round(r / count) + brighten)
-				Math.min(255, Math.round(g / count) + brighten)
-				Math.min(255, Math.round(b / count) + brighten)
-			]
-			return fn(null)
+		index = 100 * 100 * 4
+		child = exec("pngquant --ext=.png --force " + brick.target,  (error, stdout, stderr) ->
+			if error isnt null
+				console.log('exec error: ' + error)
+				return
+
+			getPixels(brick.target, (err, pixels) ->
+				if err
+					console.log("Bad image path", brick.target)
+					return fn(null)
+
+				i = count = r = g = b = 0
+				while i < pixels.data.length
+					pr = pixels.data[i + 0]
+					pg = pixels.data[i + 1]
+					pb = pixels.data[i + 2]
+					if pr < 255 and pg < 255 and pg < 255
+						count++
+						r += pr
+						g += pg
+						b += pb
+					i+=4
+				brighten = 0
+				brick.colorRGB = [
+					Math.min(255, Math.round(r / count) + brighten)
+					Math.min(255, Math.round(g / count) + brighten)
+					Math.min(255, Math.round(b / count) + brighten)
+				]
+				return fn(null)
+			)
+
+			
 		)
 
 	normalizeColors: (bricks, fn) =>
@@ -320,7 +335,7 @@ module.exports = class Harvester
 
 
 	# unique
-	# Return a list of bricks where one parameter is unique between them and  
+	# Return a list of bricks where one parameter is unique between them and	
 	# only the selected keys are included.
 	# ie: @unique(bricks, 'colorId', ['colorRBG'])
 	# returns a list of all unique colorsId's with their coresponding colorRGB property
